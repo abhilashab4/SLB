@@ -8,6 +8,8 @@ from backend.common.heartbeat import (
     start_heartbeat
 )
 
+import asyncio
+
 app = FastAPI()
 
 SERVICE_ID = "server1"
@@ -48,10 +50,18 @@ async def health():
         "server": SERVICE_ID
     }
 
-
 @app.get("/process")
 async def process():
+
+    await asyncio.sleep(20)
 
     return {
         "processed_by": SERVICE_ID
     }
+
+# @app.get("/process")
+# async def process():
+
+#     return {
+#         "processed_by": SERVICE_ID
+#     }

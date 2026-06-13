@@ -1,3 +1,5 @@
+from urllib import request
+
 from fastapi import FastAPI
 from fastapi import Request
 
@@ -7,7 +9,7 @@ from fastapi.responses import (
 )
 
 from gateway.scheduler import (
-    RoundRobinScheduler
+    LeastConnectionsScheduler,
 )
 
 from gateway.registry_client import (
@@ -20,7 +22,7 @@ from gateway.proxy import (
 
 app = FastAPI()
 
-scheduler = RoundRobinScheduler()
+scheduler = LeastConnectionsScheduler()
 
 registry_client = RegistryClient()
 
@@ -81,18 +83,33 @@ async def gateway(
     f"{selected_server['service_id']}"
     )
 
+    print("Selected:", selected_server["service_id"])
+    print("Connections:", scheduler.active_connections)
+
     body = await request.body()
 
-    response = await proxy_service.forward(
-        method=request.method,
-        url=target_url,
-        headers=dict(request.headers),
-        params=request.query_params,
-        body=body
-    )
+    try:
 
-    return Response(
-        content=response.content,
-        status_code=response.status_code,
-        headers=dict(response.headers)
-    )
+        response = await proxy_service.forward(
+            method=request.method,
+            url=target_url,
+            headers=dict(request.headers),
+            params=request.query_params,
+            body=body
+        )
+
+        return Response(
+            content=response.content,
+            status_code=response.status_code,
+            headers=dict(response.headers)
+        )
+
+    finally:
+
+        await scheduler.release_server(
+            selected_server["service_id"]
+        )
+
+@app.get("/connections")
+async def connections():
+    return scheduler.active_connections

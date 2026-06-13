@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import FastAPI
 
 from backend.common.registration import (
@@ -49,8 +51,17 @@ async def health():
     }
 
 
+# @app.get("/process")
+# async def process():
+
+#     return {
+#         "processed_by": SERVICE_ID
+#     }
+
 @app.get("/process")
 async def process():
+
+    await asyncio.sleep(1)
 
     return {
         "processed_by": SERVICE_ID

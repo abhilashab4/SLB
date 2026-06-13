@@ -12,7 +12,7 @@ class ProxyService:
         body
     ):
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
 
             response = await client.request(
                 method=method,
@@ -20,7 +20,6 @@ class ProxyService:
                 headers=headers,
                 params=params,
                 content=body,
-                timeout=10
             )
 
             return response
