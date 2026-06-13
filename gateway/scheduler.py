@@ -34,7 +34,7 @@ class LeastConnectionsScheduler:
         ] += 1
 
         # print("Selected:", selected["service_id"])
-        # print("After:", self.active_connections)
+        print("Now:", self.active_connections)
 
         return selected
 
