@@ -18,6 +18,10 @@ from gateway.proxy import (
     ProxyService
 )
 
+from gateway.circuit_breaker import (
+    CircuitBreaker
+)
+
 app = FastAPI()
 
 scheduler = LeastConnectionsScheduler()
@@ -25,6 +29,8 @@ scheduler = LeastConnectionsScheduler()
 registry_client = RegistryClient()
 
 proxy_service = ProxyService()
+
+circuit_breaker = CircuitBreaker()
 
 
 @app.get("/health")
@@ -34,6 +40,16 @@ async def health():
         "status": "gateway healthy"
     }
 
+@app.get("/connections")
+async def connections():
+
+    return scheduler.active_connections
+
+
+@app.get("/circuit-breaker")
+async def circuit_breaker_status():
+
+    return circuit_breaker.get_status()
 
 @app.api_route(
     "/{path:path}",
@@ -64,7 +80,27 @@ async def gateway(
 
     body = await request.body()
 
-    available_servers = services.copy()
+    available_servers = [
+
+        service
+
+        for service in services
+
+        if circuit_breaker.is_available(
+            service["service_id"]
+        )
+
+    ]
+
+    if not available_servers:
+
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error":
+                "All circuits are open"
+            }
+        )
 
     for _ in range(len(available_servers)):
 
@@ -83,23 +119,21 @@ async def gateway(
                 f"{selected_server['service_id']}"
             )
 
-            # Debug only
-            # print(
-            #     "Selected:",
-            #     selected_server["service_id"]
-            # )
-            #
-            # print(
-            #     "Connections:",
-            #     scheduler.active_connections
-            # )
-
             response = await proxy_service.forward(
                 method=request.method,
                 url=target_url,
                 headers=dict(request.headers),
                 params=request.query_params,
                 body=body
+            )
+
+            if response.status_code >= 500:
+                raise Exception(
+                f"Backend error {response.status_code}"
+                )
+
+            circuit_breaker.record_success(
+                selected_server["service_id"]
             )
 
             return Response(
@@ -109,6 +143,10 @@ async def gateway(
             )
 
         except Exception as e:
+
+            circuit_breaker.record_failure(
+                selected_server["service_id"]
+            )
 
             print(
                 f"Retrying after failure: "
@@ -134,7 +172,3 @@ async def gateway(
     )
 
 
-@app.get("/connections")
-async def connections():
-
-    return scheduler.active_connections

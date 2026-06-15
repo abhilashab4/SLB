@@ -58,11 +58,18 @@ async def health():
 #         "processed_by": SERVICE_ID
 #     }
 
+
+# Least connections test
+# @app.get("/process")
+# async def process():
+
+#     await asyncio.sleep(2)
+
+#     return {
+#         "processed_by": SERVICE_ID
+#     }
+
+# Circuit breaker test
 @app.get("/process")
 async def process():
-
-    await asyncio.sleep(2)
-
-    return {
-        "processed_by": SERVICE_ID
-    }
+    raise Exception("Simulated failure")
