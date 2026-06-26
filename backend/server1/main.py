@@ -57,7 +57,11 @@ async def health():
 @app.get("/process")
 async def process():
 
-    await asyncio.sleep(20)
+    print(f"{SERVICE_ID} started")
+
+    await asyncio.sleep(5)
+
+    print(f"{SERVICE_ID} finished")
 
     return {
         "processed_by": SERVICE_ID

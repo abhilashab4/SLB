@@ -61,11 +61,15 @@ async def health():
 #         "processed_by": SERVICE_ID
 #     }
 
+# @app.get("/process")
+# async def process():
+
+#     await asyncio.sleep(5)
+
+#     return {
+#         "processed_by": SERVICE_ID
+#     }
+
 @app.get("/process")
 async def process():
-
-    await asyncio.sleep(2)
-
-    return {
-        "processed_by": SERVICE_ID
-    }
+    raise Exception("Simulated failure")
