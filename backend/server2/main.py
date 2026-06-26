@@ -14,9 +14,13 @@ app = FastAPI()
 
 SERVICE_ID = "server2"
 
-SERVICE_URL = "http://localhost:8002"
+# SERVICE_URL = "http://localhost:8002"
+SERVICE_URL = "http://server2:9002"
 
-REGISTRY_URL = "http://localhost:9000"
+
+# REGISTRY_URL = "http://localhost:9000"
+REGISTRY_URL = "http://registry:8000"
+
 
 
 @app.on_event("startup")

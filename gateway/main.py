@@ -3,7 +3,12 @@ from fastapi import Request
 
 from fastapi.responses import (
     JSONResponse,
-    Response
+    Response,
+    PlainTextResponse
+)
+
+from prometheus_client import (
+    generate_latest
 )
 
 from gateway.scheduler import (
@@ -20,6 +25,12 @@ from gateway.proxy import (
 
 from gateway.circuit_breaker import (
     CircuitBreaker
+)
+
+from gateway.metrics import (
+    REQUESTS_TOTAL,
+    RETRIES_TOTAL,
+    REQUESTS_BY_SERVER
 )
 
 app = FastAPI()
@@ -40,6 +51,7 @@ async def health():
         "status": "gateway healthy"
     }
 
+
 @app.get("/connections")
 async def connections():
 
@@ -50,6 +62,15 @@ async def connections():
 async def circuit_breaker_status():
 
     return circuit_breaker.get_status()
+
+
+@app.get("/metrics")
+async def metrics():
+
+    return PlainTextResponse(
+        generate_latest().decode("utf-8")
+    )
+
 
 @app.api_route(
     "/{path:path}",
@@ -108,6 +129,12 @@ async def gateway(
             available_servers
         )
 
+        REQUESTS_TOTAL.inc()
+
+        REQUESTS_BY_SERVER.labels(
+            server=selected_server["service_id"]
+        ).inc()
+
         target_url = (
             f"{selected_server['url']}{path}"
         )
@@ -128,8 +155,10 @@ async def gateway(
             )
 
             if response.status_code >= 500:
+
                 raise Exception(
-                f"Backend error {response.status_code}"
+                    f"Backend error "
+                    f"{response.status_code}"
                 )
 
             circuit_breaker.record_success(
@@ -143,6 +172,8 @@ async def gateway(
             )
 
         except Exception as e:
+
+            RETRIES_TOTAL.inc()
 
             circuit_breaker.record_failure(
                 selected_server["service_id"]
@@ -170,5 +201,3 @@ async def gateway(
             "All backend servers unavailable"
         }
     )
-
-

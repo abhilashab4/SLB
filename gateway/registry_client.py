@@ -1,6 +1,6 @@
 import httpx
 
-REGISTRY_URL = "http://localhost:9000"
+REGISTRY_URL = "http://registry:8000"
 
 
 class RegistryClient:
